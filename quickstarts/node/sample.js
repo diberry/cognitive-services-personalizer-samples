@@ -1,31 +1,37 @@
 'use strict';
+
+// <Dependencies>
 const uuidv1 = require('uuid/v1');
 const Personalizer = require('@azure/cognitiveservices-personalizer');
 const CognitiveServicesCredentials = require('@azure/ms-rest-azure-js').CognitiveServicesCredentials;
 const readline = require('readline-sync');
+// </Dependencies>
 
 async function main() {
 
+  // <AuthorizationVariables>
   // The key specific to your personalization service instance; e.g. "0123456789abcdef0123456789ABCDEF"
-  let serviceKey = "";
+  let serviceKey = process.env.PERSONALIZER_KEY;
 
-  // The endpoint specific to your personalization service instance; e.g. https://westus2.api.cognitive.microsoft.com
-  let baseUri = "";
+  // The endpoint specific to your personalization service instance; 
+  // e.g. https://westus2.api.cognitive.microsoft.com
+  let baseUri = process.env.PERSONALIZER_ENDPOINT;
+  // </AuthorizationVariables>
 
+  // <Client>
   let credentials = new CognitiveServicesCredentials(serviceKey);
 
   // Initialize Personalization client.
   let personalizerClient = new Personalizer.PersonalizerClient(credentials, baseUri);
+  // </Client>
 
+
+  // <mainLoop>
   let runLoop = true;
 
   do {
 
-    // this isn't correct - it looks like it is off of mappers instead of models
-    /*
-    let rankRequest = new Personalizer.PersonalizerModels.RankRequest();
-     */
-
+    // <rank>
     let rankRequest = {}
 
     // Generate an ID to associate with the request.
@@ -44,6 +50,7 @@ async function main() {
 
     // Rank the actions
     let rankResponse = await personalizerClient.rank(rankRequest);
+    // </rank>
 
     console.log("\nPersonalization service thinks you would like to have:\n")
     console.log(rankResponse.rewardActionId);
@@ -58,24 +65,21 @@ async function main() {
 
     // Send the reward for the action based on user response.
 
-    // this isn't correct - it looks like it is off of mappers instead of models
-    /*
-    let rewardRequest = Personalizer.PersonalizerModels.RewardRequest = {
-      value: reward
-    };
-    */
-
+    // <reward>
     let rewardRequest = {
       value: reward
     }
 
     await personalizerClient.events.reward(rankRequest.eventId, rewardRequest);
+    // </reward>
 
     runLoop = continueLoop();
 
   } while (runLoop);
+  // </mainLoop>
 }
 
+// <continueLoop>
 function continueLoop() {
   var answer = readline.question("\nPress q to break, any other key to continue.\n")
   if (answer.toLowerCase() === 'q') {
@@ -83,7 +87,9 @@ function continueLoop() {
   }
   return true;
 }
+// </continueLoop>
 
+// <getReward>
 function getReward() {
   var answer = readline.question("\nIs this correct (y/n)\n");
   if (answer.toLowerCase() === 'y') {
@@ -93,7 +99,10 @@ function getReward() {
   console.log("\nYou didn't like the recommended food choice.");
   return 0;
 }
+// </getReward>
 
+
+// <createUserFeatureTimeOfDay>
 function getContextFeaturesList() {
   var timeOfDayFeatures = ['morning', 'afternoon', 'evening', 'night'];
   var tasteFeatures = ['salty', 'sweet'];
@@ -119,6 +128,7 @@ function getContextFeaturesList() {
     }
   ];
 }
+// </createUserFeatureTimeOfDay>
 
 function getExcludedActionsList() {
   return [
@@ -126,6 +136,7 @@ function getExcludedActionsList() {
   ];
 }
 
+// <getActions>
 function getActionsList() {
   return [
     {
@@ -182,7 +193,10 @@ function getActionsList() {
     }
   ];
 }
+// </getActions>
 
+// <callMain>
 var program = main()
 .then(result => console.log("done"))
 .catch(err=> console.log(err));
+// </callMain>
